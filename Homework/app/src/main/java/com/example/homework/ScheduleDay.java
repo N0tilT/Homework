@@ -4,12 +4,14 @@ import java.util.ArrayList;
 
 public class ScheduleDay {
     private String dayTitle;
+    private int weekPosition;
     private ArrayList<Subject> subjectArrayList;
 
-    public ScheduleDay(ArrayList<Subject> subjectArrayList, String title){
+    public ScheduleDay(ArrayList<Subject> subjectArrayList, String title,int weekPosition){
 
         this.subjectArrayList = subjectArrayList;
         this.dayTitle = title;
+        this.weekPosition = weekPosition;
     }
 
     public String getDayTitle() {
@@ -30,5 +32,13 @@ public class ScheduleDay {
 
     public void addSubject(Subject currentSubject) {
         subjectArrayList.add(currentSubject);
+    }
+
+    public int getWeek_position() {
+        return weekPosition;
+    }
+
+    public void setWeek_position(int week_position) {
+        this.weekPosition = week_position;
     }
 }

@@ -13,6 +13,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
@@ -26,7 +27,7 @@ import java.util.Base64;
 
 public class LoginActivity extends AppCompatActivity {
     public static String host = "82.179.140.18";
-    public static int port = 45146;
+    public static int port = 45125;
     public static String password;
     public static String login;
 
@@ -35,13 +36,11 @@ public class LoginActivity extends AppCompatActivity {
     private EditText loginInput;
     private Button loginBtn;
     private Button backBtn;
-    private String response_string;
 
     private EditText usernameInput, passwordInput;
 
     private User user;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -55,12 +54,13 @@ public class LoginActivity extends AppCompatActivity {
 
         loginBtn.setOnClickListener(view -> LoginAccount());
         backBtn.setOnClickListener((View.OnClickListener) view -> {
-            Intent MainIntent = new Intent(LoginActivity.this, MainActivity.class);
-            startActivity(MainIntent);
+             Intent MainIntent = new Intent(LoginActivity.this, MainActivity.class);
+             startActivity(MainIntent);
         });
+
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     private void LoginAccount() {
         login = loginInput.getText().toString();
         password = passwordInput.getText().toString();
@@ -83,7 +83,9 @@ public class LoginActivity extends AppCompatActivity {
 
         byte[] hash = md.digest(password.getBytes());
 
-        password = Base64.getEncoder().encodeToString(hash);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            password = Base64.getEncoder().encodeToString(hash);
+        }
         try {
             login();
         } catch (Exception e) {
@@ -91,10 +93,6 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(backIntent);
         }
 
-        Intent ScheduleIntent = new Intent(LoginActivity.this, ScheduleActivity.class);
-        ScheduleIntent.putExtra("user_id", user.getUserId());
-        ScheduleIntent.putExtra("user_name", user.getUserLogin());
-        startActivity(ScheduleIntent);
     }
 
     private void login() {
@@ -103,29 +101,67 @@ public class LoginActivity extends AppCompatActivity {
             try {
                 Socket socket = new Socket();
                 socket.connect(sa, 5000);
+                socket.setReceiveBufferSize(4096);
+
                 OutputStreamWriter out = new OutputStreamWriter(socket.getOutputStream());
 
-                out.write("/POST|login@"+login+"@"+password);
+                out.write("OBOBUS137");
                 out.flush();
 
                 InputStreamReader in = new InputStreamReader(socket.getInputStream());
                 BufferedReader buf = new BufferedReader(in);
+                String response_string = buf.readLine();
+                if(!response_string.equalsIgnoreCase("Welcome to the server")){
+                    socket.close();
+                    throw new Exception();
+                }
+
+                out = new OutputStreamWriter(socket.getOutputStream());
+                out.write("/POST|login@"+login+"@"+password);
+                out.flush();
+
+                in = new InputStreamReader(socket.getInputStream());
+                buf = new BufferedReader(in);
+                StringBuilder tmp = new StringBuilder();
                 response_string = buf.readLine();
+                tmp.append(response_string);
                 socket.close();
+                StringBuilder builder = new StringBuilder();
+                int parenthesesCounter = 0;
+                for (int i = 0; i < tmp.length(); i++) {
+                    if(tmp.charAt(i) == '{'){
+                        parenthesesCounter++;
+                    }
+                    if(tmp.charAt(i) == '}'){
+                        parenthesesCounter--;
+                    }
+                    if(parenthesesCounter>1) {
+                        if (tmp.charAt(i) == '\"')
+                        {
+                            builder.append('\\');
+                        }
+                    }
+                    builder.append(tmp.charAt(i));
+                }
+                String finalResponse_string = builder.toString();
                 runOnUiThread(() -> {
                     Response response;
                     try {
-                        response = mapper.readValue(response_string,Response.class);
+                        response = mapper.readValue(finalResponse_string,Response.class);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);
                     }
-                    if(response.getType() == "SUCCESS") {
+                    if(response.getType().equals("SUCCESS")) {
                         try {
                             this.user = mapper.readValue(response.getMessage(), User.class);
                         } catch (JsonProcessingException e) {
                             throw new RuntimeException(e);
                         }
                     }
+                    Intent ScheduleIntent = new Intent(LoginActivity.this, ScheduleActivity.class);
+                    ScheduleIntent.putExtra("user_id", user.getUserId());
+                    ScheduleIntent.putExtra("user_name", user.getUserLogin());
+                    startActivity(ScheduleIntent);
                 });
 
             } catch (Exception ex) {

@@ -1,10 +1,24 @@
 package com.example.homework;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
+import java.io.IOException;
+
 public class Response {
     private String type;
+
+    @JsonDeserialize(using = ResponseValueDeserialized.class)
     private String message;
 
-    public Response(String type, String message) {
+    @JsonCreator
+    public Response(@JsonProperty("type") String type,@JsonProperty("message") String message) {
         this.type = type;
         this.message = message;
     }
@@ -25,3 +39,4 @@ public class Response {
         this.message = message;
     }
 }
+

@@ -1,14 +1,18 @@
 package com.example.homework;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Homework {
     private String homework_title;
     private String homework_description;
-    private int subject_id;
+    private int userId;
 
-    public Homework(String homework_titlte, String homework_description, int subject_id){
-        this.homework_title = homework_titlte;
+    @JsonCreator
+    public Homework(@JsonProperty("user_id") int user_id,@JsonProperty("homework_title") String homework_title,@JsonProperty("homework_description") String homework_description){
+        this.userId = user_id;
+        this.homework_title = homework_title;
         this.homework_description = homework_description;
-        this.subject_id = subject_id;
     }
 
     public String getHomework_title() {
@@ -25,13 +29,5 @@ public class Homework {
 
     public void setHomework_description(String homeworkDescription) {
         this.homework_description = homeworkDescription;
-    }
-
-    public int getSubject_id() {
-        return subject_id;
-    }
-
-    public void setSubject_id(int subject_id) {
-        this.subject_id = subject_id;
     }
 }

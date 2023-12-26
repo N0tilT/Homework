@@ -26,12 +26,12 @@ public class MainActivity extends AppCompatActivity {
 
 
         loginButton.setOnClickListener(view -> {
-            Intent loginIntent=new Intent(MainActivity.this,LoginActivity.class);
+            Intent loginIntent=new Intent(this,LoginActivity.class);
             startActivity(loginIntent);
         });
 
         registerButton.setOnClickListener(view -> {
-            Intent registerIntent=new Intent(MainActivity.this,RegisterActivity.class);
+            Intent registerIntent=new Intent(this,RegisterActivity.class);
             startActivity(registerIntent);
         });
 

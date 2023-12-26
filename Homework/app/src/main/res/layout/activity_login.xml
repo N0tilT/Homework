@@ -78,5 +78,4 @@
         android:textSize="15pt"
         android:textColor="@color/white"
         />
-
 </RelativeLayout>

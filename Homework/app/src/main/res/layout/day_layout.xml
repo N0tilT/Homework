@@ -1,23 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
+
         <TextView
             android:id="@+id/day_title"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:text="Понедельник"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:layout_editor_absoluteX="10dp" />
+
+        <View
+            android:id="@+id/view"
+            android:layout_width="match_parent"
+            app:layout_constraintTop_toBottomOf="@+id/day_title"
+            android:layout_height="1dp"
+            android:layout_margin="10sp"
+            android:background="@color/black"
+            tools:layout_editor_absoluteX="10dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_day_view"
-            android:layout_below="@+id/day_title"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/view"
+            tools:layout_editor_absoluteX="0dp" />
+
+        <Button
+            android:id="@+id/ad_subject_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/recycler_day_view"
+            android:layout_margin="10sp"
+            android:text="Добавить"
+            android:textSize="20sp"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.cardview.widget.CardView>

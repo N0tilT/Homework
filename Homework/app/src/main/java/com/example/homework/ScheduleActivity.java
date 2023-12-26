@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
@@ -45,6 +46,7 @@ public class ScheduleActivity  extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
 
+        mSubjects = new ArrayList<>();
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_schedule_view);
         backBtn = (Button) findViewById(R.id.back_button);
         homeworkBtn = (Button) findViewById(R.id.homework_button);
@@ -52,37 +54,23 @@ public class ScheduleActivity  extends AppCompatActivity {
         scheduleDayArrayList = new ArrayList<>();
 
         Intent intent = getIntent();
-        userId = Integer.parseInt(intent.getStringExtra("user_id"));
+        userId = intent.getIntExtra("user_id",-1);
         userName = intent.getStringExtra("user_name");
+
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         GetSchedule(userId);
         homeworkBtn.setOnClickListener((View.OnClickListener) view -> {
-            String tmp = "";
-            for (int i = 0; i < scheduleDayArrayList.size(); i++) {
-                for (int j = 0; j < scheduleDayArrayList.get(i).getSubjectArrayList().size(); j++) {
-                    String[] tmpsplitted = tmp.split("\t");
-                    int subject = scheduleDayArrayList.get(i).getSubjectArrayList().get(j).getSubjectId();
-                    if(!Arrays.asList(tmpsplitted).contains(subject)){
-                        tmp += subject + "\t";
-                    }
-                }
-            }
+
             Intent HomeworkIntent = new Intent(ScheduleActivity.this, HomeworkActivity.class);
             HomeworkIntent.putExtra("user_id",userId);
             HomeworkIntent.putExtra("user_name",userName);
-            HomeworkIntent.putExtra("schedule",tmp);
             startActivity(HomeworkIntent);
         });
         backBtn.setOnClickListener((View.OnClickListener) view -> {
             Intent MainIntent = new Intent(ScheduleActivity.this, MainActivity.class);
             startActivity(MainIntent);
         });
-
-        mRecyclerView.setHasFixedSize(true);
-        mLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        mAdapter = new ScheduleAdapter(this, scheduleDayArrayList);
-        mRecyclerView.setLayoutManager(mLayoutManager);
-        mRecyclerView.setAdapter(mAdapter);
     }
 
     private void GetSchedule(int userId) {
@@ -91,25 +79,70 @@ public class ScheduleActivity  extends AppCompatActivity {
             try {
                 Socket socket = new Socket();
                 socket.connect(sa, 5000);
+                socket.setReceiveBufferSize(4096);
+
                 OutputStreamWriter out = new OutputStreamWriter(socket.getOutputStream());
 
-
-                out.write("/GET|schedule@"+userId);
+                out.write("OBOBUS137");
                 out.flush();
+
                 InputStreamReader in = new InputStreamReader(socket.getInputStream());
                 BufferedReader buf = new BufferedReader(in);
                 String response_string = buf.readLine();
+                if(!response_string.equalsIgnoreCase("Welcome to the server")){
+                    socket.close();
+                    throw new Exception();
+                }
+
+                out = new OutputStreamWriter(socket.getOutputStream());
+
+
+                out.write("/GET|schedule@"+this.userId);
+                out.flush();
+                in = new InputStreamReader(socket.getInputStream());
+                buf = new BufferedReader(in);
+                StringBuilder tmp = new StringBuilder();
+                response_string = buf.readLine();
+                tmp.append(response_string);
+                socket.close();
+                StringBuilder builder = new StringBuilder();
+                int parenthesesCounter = 0;
+                for (int i = 0; i < tmp.length(); i++) {
+                    if(tmp.charAt(i) == '{'){
+                        parenthesesCounter++;
+                    }
+                    if(tmp.charAt(i) == '}'){
+                        parenthesesCounter--;
+                    }
+                    if(parenthesesCounter>1) {
+                        if (tmp.charAt(i) == '\"')
+                        {
+                            builder.append('\\');
+                        }
+                    }
+                    builder.append(tmp.charAt(i));
+                }
+                String finalResponse_string = builder.toString();
                 runOnUiThread(() -> {
                     Response response;
                     try {
-                        response = mapper.readValue(response_string,Response.class);
+                        response = mapper.readValue(finalResponse_string,Response.class);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);
                     }
 
-                    if(response.getType() == "SUCCESS") {
+                    if(response.getType().equals("SUCCESS")) {
                         try {
-                            this.mSubjects = mapper.readValue(response.getMessage(), new TypeReference<ArrayList<Subject>>() {});
+                            if(!response.getMessage().equals("Not found")){
+                                if(response.getMessage().contains("[") || response.getMessage().contains("]")){
+                                    this.mSubjects = mapper.readValue(response.getMessage(), new TypeReference<ArrayList<Subject>>() {});
+                                }
+                                else{
+                                    this.mSubjects.add(mapper.readValue(response.getMessage(), new TypeReference<Subject>() {}));
+                                }
+
+                            }
+
                         } catch (JsonProcessingException e) {
                             throw new RuntimeException(e);
                         }
@@ -133,13 +166,18 @@ public class ScheduleActivity  extends AppCompatActivity {
                             flag = false;
                         }
                         if(!flag){
-                            scheduleDayArrayList.add(new ScheduleDay(new ArrayList<Subject>(),dayTitles.get(currentSubject.getWeekPosition())));
+                            scheduleDayArrayList.add(new ScheduleDay(new ArrayList<Subject>(),dayTitles.get(currentSubject.getWeekPosition()), currentSubject.getWeekPosition()));
                             flag = true;
                         }
                         scheduleDayArrayList.get(currentSubject.getWeekPosition()).addSubject(currentSubject);
                         currentDay = currentSubject.getWeekPosition();
                     }
 
+                    mRecyclerView.setHasFixedSize(true);
+                    mLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+                    mAdapter = new ScheduleAdapter(this, scheduleDayArrayList);
+                    mRecyclerView.setLayoutManager(mLayoutManager);
+                    mRecyclerView.setAdapter(mAdapter);
                 });
                 socket.close();
 
